@@ -10,9 +10,9 @@
 from fastapi import FastAPI, HTTPException
 from typing import List, Optional
 from pydantic import BaseModel, Field, validator
+from bs4 import BeautifulSoup
 import pandas as pd
 import requests
-from bs4 import BeautifulSoup
 
 # FastAPI Setup
 app = FastAPI()
@@ -37,9 +37,13 @@ df = pd.read_excel(file_path)
 reviews = []
 for _, row in df.iterrows():
     try:
+        review_text = row.get('testo', '')
+        if pd.isna(review_text) or review_text.strip() == '':
+            review_text = "No comment provided"
+        
         review = RestaurantReview(
             reviewer=row.get('reviewer', 'Anonymous'),
-            testo=row.get('testo', ''),
+            testo=review_text,
             voto=row.get('voto', 0)
         )
         reviews.append(review)
@@ -61,32 +65,38 @@ async def fetch_reviews():
 # Bonus (Optional):
 # Scrape JustEat reviews
 def scrape_justeat_reviews(restaurant_name: str):
-    # Placeholder URL; 
-    url = f"https://www.just-eat.co.uk/restaurants-{restaurant_name}/reviews"
-    response = requests.get(url)
-    if response.status_code != 200:
-        raise HTTPException(status_code=404, detail="Restaurant not found")
-
-    soup = BeautifulSoup(response.content, 'html.parser')
-    review_elements = soup.find_all('div', class_='review-text')
-
-    scraped_reviews = []
-    for element in review_elements:
-        comment = element.get_text(strip=True)
-        scraped_reviews.append({
-            "reviewer": "Scraped User",
-            "testo": comment,
-            "voto": 5,  # Example: default rating
-            "sentiment": None
-        })
+    # Construct the URL for the restaurant's review page
+    url = f"https://www.justeat.it/domicilio-{restaurant_name}/reviews"
     
-    return scraped_reviews
-
-@app.get("/scrape_reviews/{restaurant_name}", response_model=List[RestaurantReview])
-async def scrape_reviews(restaurant_name: str):
     try:
-        scraped_reviews = scrape_justeat_reviews(restaurant_name)
-        reviews.extend([RestaurantReview(**rev) for rev in scraped_reviews])
-        return scraped_reviews
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        response = requests.get(url)
+        response.raise_for_status()  # Check for HTTP errors
+        
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        reviews_list = []
+        for review_div in soup.find_all('div', class_='review-container'):
+            reviewer_name = review_div.find('span', class_='reviewer-name').text.strip()
+            review_text = review_div.find('p', class_='review-text').text.strip()
+            rating = float(review_div.find('span', class_='review-rating').text.strip())
+            
+            review = RestaurantReview(
+                reviewer=reviewer_name,
+                testo=review_text,
+                voto=rating
+            )
+            reviews_list.append(review)
+            
+        return reviews_list
+    
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching reviews from JustEat: {e}")
+        return []
+
+# Create an endpoint for scraping
+@app.get("/scrape_reviews/")
+async def scrape_reviews(restaurant_name: str):
+    scraped_reviews = scrape_justeat_reviews(restaurant_name)
+    if not scraped_reviews:
+        raise HTTPException(status_code=404, detail="No reviews found or error in scraping.")
+    return scraped_reviews

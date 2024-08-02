@@ -7,7 +7,7 @@ First, I create a FastAPI application structure, which will serve as the "backbo
 ## 2. Create a Pydantic Model
 I create a model called RestaurantReview that describes what a review should look like, making sure the data is correct, like checking that ratings are within a certain range and comments aren't too long.
 
-STEP:
+### Steps:
 1. Define a RestaurantReview Pydantic model with fields for reviewer, text, sentiment, and vote.
 2. Implement validation to ensure voto (rating) is between 0 and 5, and testo (review text) isn't too long.
 
@@ -24,5 +24,18 @@ This will allow people to see all the reviews that have been added so far.
 ## Bonus: Scrape Reviews from JustEat
 I try to set up an endpoint that can fetch reviews from the JustEat website when you give it a restaurant name.
 
-## 5. Access the API:
+## 5. Installation
+### Prerequisites:
+- Python 3.7+
+- pip (Python package installer)
+
+### Steps:
+1. Clone the repository:
+   git clone https://github.com/lovatoemma/Exercise.git
+2. Ensure you have the necessary packages installed in your environment
+   pip install pandas fastapi uvicorn pydantic requests beautifulsoup4 openpyxl
+3. Run FastAPI:
+   uvicorn main:app --reload
+
+## 6. Access the API:
 Open your browser and go to http://localhost:8000/docs to view the API documentation and test the endpoints.

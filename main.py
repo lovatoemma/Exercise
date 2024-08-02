@@ -1,4 +1,12 @@
 # main.py
+
+# PRACTICAL EXERCISE
+# Set up a FastAPI web service centred on Pydantic validation. 
+# For those looking to go the extra mile, 
+# incorporate data scraping to fetch reviews from JustEat. 
+# Take the Excel file as the data source.
+
+# Libraries
 from fastapi import FastAPI, HTTPException
 from typing import List, Optional
 from pydantic import BaseModel, Field, validator
@@ -6,6 +14,7 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 
+# FastAPI Setup
 app = FastAPI()
 
 # Define the Pydantic model
@@ -38,15 +47,18 @@ for _, row in df.iterrows():
         print(f"Error adding review from row: {row} -> {e}")
 
 # API endpoints
+# An endpoint to input a review based on the `RestaurantReview` schema.
 @app.post("/add_review/", response_model=RestaurantReview)
 async def add_review(review: RestaurantReview):
     reviews.append(review)
     return review
 
+# An endpoint to retrieve all stored reviews.
 @app.get("/reviews/", response_model=List[RestaurantReview])
 async def fetch_reviews():
     return reviews
 
+# Bonus (Optional):
 # Scrape JustEat reviews
 def scrape_justeat_reviews(restaurant_name: str):
     # Placeholder URL; 
